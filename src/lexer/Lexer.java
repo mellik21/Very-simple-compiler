@@ -8,12 +8,14 @@ package lexer;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.Objects;
 
 public class Lexer {
 
     private Hashtable<String, Keyword> words = new Hashtable<>();
     private Hashtable<String, Keyword> borders = new Hashtable<>();
     private ArrayList<String> variables = new ArrayList<>();
+    private ArrayList<String> numbers = new ArrayList<>();
 
     private char peek = ' ';
 
@@ -31,31 +33,25 @@ public class Lexer {
     private void reserveKeywords() {
         reserveWord(Keyword.BEGIN);
         reserveWord(Keyword.END);
-
         reserveWord(Keyword.FALSE);
         reserveWord(Keyword.TRUE);
-
         reserveWord(Keyword.DO);
         reserveWord(Keyword.WHILE);
         reserveWord(Keyword.IF);
         reserveWord(Keyword.ELSE);
         reserveWord(Keyword.BREAK);
-
         reserveWord(Keyword.END_ELSE);
         reserveWord(Keyword.INPUT);
         reserveWord(Keyword.OUTPUT);
         reserveWord(Keyword.VAR);
         reserveWord(Keyword.LET);
-
         reserveWord(Keyword.FOR);
         reserveWord(Keyword.THEN);
         reserveWord(Keyword.IF);
         reserveWord(Keyword.ELSE);
-
         reserveWord(Keyword.NUM);
         reserveWord(Keyword.REAL);
         reserveWord(Keyword.BOOLEAN);
-
     }
 
     private void reserveBoarders() {
@@ -110,10 +106,6 @@ public class Lexer {
         }
 
         switch (peek){
-            case '(':
-                return new Token('(');
-            case ')':
-                return new Token(')');
             case '{':
                 return new Token('{');
             case '}':
@@ -146,6 +138,9 @@ public class Lexer {
                 read();
             }
             System.out.println(sb.toString());
+
+            numbers.add(sb.toString());
+
             if (peek != '.') {
                 switch (sb.charAt(sb.length() - 1)) {
                     case 'B':
@@ -171,6 +166,8 @@ public class Lexer {
                             System.exit(0);
                         }
                 }
+
+                return new Num(Integer.parseInt(sb.toString()));
             }
 /*
             float x = v, d = 10;
@@ -187,15 +184,21 @@ public class Lexer {
 */
         }
 
-        if (Character.isLetter((int) peek)) {
+        if (Character.isLetter((int) peek) || peek=='(' || peek == ')' || peek == '*') {
 
             StringBuilder b = new StringBuilder();
             do {
                 b.append(peek);
                 read();
-            } while (Character.isLetterOrDigit((int) peek) || peek == '_');
+                if(!hasNext()){
+                    b.append(peek);
+                    read();
+                    break;
+                }
+            } while (peek !=' ');
             String s = b.toString();
-            System.out.println(s);
+          //  System.out.println(s);
+
             Keyword w = (Keyword) words.get(s);
             if (w != null) {
                 return w;
@@ -208,10 +211,9 @@ public class Lexer {
 
             w = new Keyword(s, Tag.ID);
             words.put(s, w);
-
+            variables.add(s);
             return new Keyword(s, Tag.ID);
         }
-
 
 
         Token t = new Token(peek);
@@ -233,5 +235,30 @@ public class Lexer {
             System.exit(0);
         }
         return new Num(result);
+    }
+
+    public boolean hasNext(){
+        try {
+            return (System.in.available()>0);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public Hashtable<String, Keyword> getWords() {
+        return words;
+    }
+
+    public Hashtable<String, Keyword> getBorders() {
+        return borders;
+    }
+
+    public ArrayList<String> getVariables() {
+        return variables;
+    }
+
+    public ArrayList<String> getNumbers() {
+        return numbers;
     }
 }

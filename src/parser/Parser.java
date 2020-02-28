@@ -26,7 +26,8 @@ import symbol.Env;
 import symbol.Type;
 
 public class Parser {
-    ArrayList<String>variables = new ArrayList<>();
+    public static boolean comment;
+
 
     private final Lexer lexer;
     private Token look;
@@ -47,7 +48,7 @@ public class Parser {
 
     private void match(int t) throws IOException {
         if (look.tag == t) {
-       //     System.out.println("$ "+look.tag+" "+t);
+          System.out.println("$ "+look.tag+" "+t);
             move();
         } else {
             error("Syntax Error! Code "+t+" expected");
@@ -55,8 +56,8 @@ public class Parser {
     }
 
     private void error(String s) {
-       throw new Error("near line " + lexer.line + " : " + s);
-
+        System.out.println(("near line " + lexer.line + " : " + s));
+        System.exit(0);
     }
 
     public void start() throws IOException {
@@ -201,6 +202,20 @@ public class Parser {
                 return block();
             case '}':
                 return null;
+            case Tag.L_СOMMENT:
+                match(Tag.L_СOMMENT);
+                while(look.tag!=Tag.R_COMMENT){
+                    lexer.scan();
+                    if(!lexer.hasNext()){
+                        error("Незакрытый комментарий!");
+                        break;
+                    }
+                }
+                match(Tag.R_COMMENT);
+                return null;
+            case Tag.R_COMMENT:
+                error("Незакрытый комментарий!");
+                return null;
             default:  //STMT → LOC = BOOL ;
                 return assign();
 
@@ -225,7 +240,7 @@ public class Parser {
 
         if (look.tag == '=') { //STMT -> id = expr
             match('=');
-            System.out.println(variable+" =");
+         //   System.out.println(variable+" =");
             stmt = new Set(variable, bool());
         }
         return stmt;
@@ -235,7 +250,7 @@ public class Parser {
         Expr x = join();
         while (look.tag == Tag.OR) {
             Token tok = look;
-            move();
+            match(look.tag);
             x = new Rel(tok, x, join());
         }
         return x;
@@ -245,7 +260,7 @@ public class Parser {
         Expr x = equality();
         while (look.tag == Tag.AND) {
             Token tok = look;
-            move();
+            match(look.tag);
             x = new Rel(tok, x, equality());
         }
         return x;
@@ -254,7 +269,7 @@ public class Parser {
     private Expr equality() throws IOException { //EQUALITY  →  EQUALITY == REL | EQUALITY != REL | REL
         Expr x = rel();
         while (look.tag == Tag.EQ || look.tag == Tag.NE) {
-            move();
+            match(look.tag);
             x = new Rel(look, x, rel());
         }
         return x;
@@ -268,7 +283,7 @@ public class Parser {
             case Tag.GE:
             case Tag.GT:
                 Token tok = look;
-                move();
+                match(look.tag);
                 return new Rel(tok, x, expr());
             default:
                 return x;
