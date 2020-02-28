@@ -5,19 +5,13 @@
  */
 package parser;
 
-import com.sun.deploy.security.ValidationState;
 import inter.expr.Constant;
 import inter.expr.Expr;
-import inter.expr.Id;
 import inter.expr.Rel;
 import inter.expr.arith.Arith;
 import inter.expr.arith.Unary;
 import inter.expr.logic.Not;
 import inter.stmt.*;
-
-import java.io.IOException;
-import java.util.ArrayList;
-
 import lexer.Keyword;
 import lexer.Lexer;
 import lexer.Tag;
@@ -26,29 +20,27 @@ import symbol.Env;
 import symbol.Type;
 
 public class Parser {
-    public static boolean comment;
-
 
     private final Lexer lexer;
     private Token look;
 
-    public Parser(Lexer lexer) throws IOException {
+    public Parser(Lexer lexer) {
         this.lexer = lexer;
         move();
     }
 
-    private void move() throws IOException {
-        look = lexer.scan();
-        System.out.println("# "+look.tag);
-
-        if(look.tag == 65535){
+    private void move() {
+        if(lexer.getIndex()!=lexer.getProgramLenght()) {
+            look = lexer.scan();
+        //    System.out.println("# " + look.tag);
+        }else {
             System.out.println("Анализ проведен успешно!");
         }
     }
 
-    private void match(int t) throws IOException {
+    private void match(int t) {
         if (look.tag == t) {
-          System.out.println("$ "+look.tag+" "+t);
+        //  System.out.println("$ "+look.tag+" "+t);
             move();
         } else {
             error("Syntax Error! Code "+t+" expected");
@@ -60,11 +52,11 @@ public class Parser {
         System.exit(0);
     }
 
-    public void start() throws IOException {
+    public void start()  {
         program();
     }
 
-    private void program() throws IOException { // PROG → BLOCK
+    private void program() { // PROG → BLOCK
         if(look.tag == Tag.BEGIN) {
             match(Tag.BEGIN);
         }else{
@@ -80,7 +72,7 @@ public class Parser {
 
     private Env top = null; // top symbol table
 
-    private Stmt block() throws IOException { // BLOCK → { DECLS STMTS }
+    private Stmt block()  { // BLOCK → { DECLS STMTS }
         match('{');
         decls();
         Stmt s = stmts();
@@ -90,7 +82,7 @@ public class Parser {
 
     //==========================================================================
     // what about var a,b,c,d : % ;
-    private void decls() throws IOException {
+    private void decls()  {
         if(look.tag == Tag.VAR){
         match(Tag.VAR);
             while (look.tag == Tag.ID) {
@@ -121,7 +113,7 @@ public class Parser {
 
     //=============================================================================
 
-    private Stmt stmts() throws IOException { //STMTS →  STMTS STMT | ε
+    private Stmt stmts()  { //STMTS →  STMTS STMT | ε
         if (look.tag == '}') {
             return Stmt.Null;
         } else {
@@ -129,7 +121,7 @@ public class Parser {
         }
     }
 
-    private Stmt stmt() throws IOException {
+    private Stmt stmt()  {
         Expr x;
         Stmt s1;
         Stmt s2;
@@ -206,7 +198,7 @@ public class Parser {
                 match(Tag.L_СOMMENT);
                 while(look.tag!=Tag.R_COMMENT){
                     lexer.scan();
-                    if(!lexer.hasNext()){
+                    if(lexer.getIndex()>=lexer.getProgramLenght()-1){
                         error("Незакрытый комментарий!");
                         break;
                     }
@@ -224,7 +216,7 @@ public class Parser {
     }
 
     //what about a = 3 // let a = false
-    private Stmt assign() throws IOException { //STMT → LOC = BOOL ; // LOC →  LOC [ BOOL] | id
+    private Stmt assign()  { //STMT → LOC = BOOL ; // LOC →  LOC [ BOOL] | id
 
         Stmt stmt = null;
         if(look.tag == Tag.LET){
@@ -246,7 +238,7 @@ public class Parser {
         return stmt;
     }
 
-    private Expr bool() throws IOException { //BOOL → BOOL || JOIN | JOIN
+    private Expr bool()  { //BOOL → BOOL || JOIN | JOIN
         Expr x = join();
         while (look.tag == Tag.OR) {
             Token tok = look;
@@ -256,7 +248,7 @@ public class Parser {
         return x;
     }
 
-    private Expr join() throws IOException { // JOIN →  JOIN && EQUALITY | EQUALITY
+    private Expr join() { // JOIN →  JOIN && EQUALITY | EQUALITY
         Expr x = equality();
         while (look.tag == Tag.AND) {
             Token tok = look;
@@ -266,7 +258,7 @@ public class Parser {
         return x;
     }
 
-    private Expr equality() throws IOException { //EQUALITY  →  EQUALITY == REL | EQUALITY != REL | REL
+    private Expr equality()  { //EQUALITY  →  EQUALITY == REL | EQUALITY != REL | REL
         Expr x = rel();
         while (look.tag == Tag.EQ || look.tag == Tag.NE) {
             match(look.tag);
@@ -275,7 +267,7 @@ public class Parser {
         return x;
     }
 
-    private Expr rel() throws IOException { //REL → EXPR <  EXPR |  EXPR <= EXPR | EXPR >= EXPR | EXPR > EXPR |  EXPR
+    private Expr rel()  { //REL → EXPR <  EXPR |  EXPR <= EXPR | EXPR >= EXPR | EXPR > EXPR |  EXPR
         Expr x = expr();
         switch (look.tag) {
             case Tag.LT:
@@ -291,7 +283,7 @@ public class Parser {
 
     }
 
-    private Expr expr() throws IOException { //EXPR → EXPR + TERM | EXPR - TERM | TERM
+    private Expr expr() { //EXPR → EXPR + TERM | EXPR - TERM | TERM
         Expr x = term();
         while (look.tag == Tag.PLUS || look.tag == Tag.MINUS) {
             Token tok = look;
@@ -301,7 +293,7 @@ public class Parser {
         return x;
     }
 
-    private Expr term() throws IOException { //TERM →  TERM * UNARY | TERM / UNARY | UNARY
+    private Expr term()  { //TERM →  TERM * UNARY | TERM / UNARY | UNARY
         Expr x = unary();
         while (look.tag == Tag.MULT || look.tag == Tag.DIV) {
             Token tok = look;
@@ -313,7 +305,7 @@ public class Parser {
 
     }
 
-    private Expr unary() throws IOException { // UNARY →  !UNARY | -UNARY | FACTOR
+    private Expr unary()  { // UNARY →  !UNARY | -UNARY | FACTOR
         if (look.tag == '~') {
             move();
             return new Unary(Keyword.MINUS, unary());
@@ -328,7 +320,7 @@ public class Parser {
 
     }
 
-    private Expr factor() throws IOException { //factor -> ( BOOL ) | ID[BOOL] |ID | num | real | true | false
+    private Expr factor()  { //factor -> ( BOOL ) | ID[BOOL] |ID | num | real | true | false
         Expr x = null;
         switch (look.tag) {
             case '(':

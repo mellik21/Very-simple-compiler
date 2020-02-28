@@ -18,14 +18,7 @@ public class RedCompiler {
 
 
     public static void main(String[] args) throws IOException {
-       MainGui lexerAnalyser = new MainGui();
-
-
-
-       // System.setIn(new ByteArrayInputStream(TEST1.getBytes()));
-
-      //  Parser parser = new Parser(new Lexer());
-       // parser.start();
+        MainGui lexerAnalyser = new MainGui();
 
     }
 }

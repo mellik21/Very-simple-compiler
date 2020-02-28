@@ -5,11 +5,13 @@ import lexer.Lexer;
 import parser.Parser;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Hashtable;
 
 public class MainGui extends JFrame {
@@ -28,18 +30,16 @@ public class MainGui extends JFrame {
     private JTable tableVariables;
     private JButton button1;
 
-    private static String[][]keywords;
-    private static String[][]boarders;
-    private static String[][]numbers;
-    private static String[][]variables;
-    private static String[]keywordsColumns = new String[]{"№", "Word"};
-    private static  Lexer lexer = new Lexer();
+    private static String[][] keywords;
+    private static String[][] boarders;
+    private static String[] keywordsColumns = new String[]{"№", "Word"};
+    private static Lexer lexer = new Lexer();
 
-    public MainGui(){
-        setSize(new Dimension(800,600));
-       setContentPane(panel1);
-       panel1.setBackground(new Color(200,200,200));
-       setVisible(true);
+    public MainGui() {
+        setSize(new Dimension(800, 600));
+        setContentPane(panel1);
+        panel1.setBackground(new Color(200, 200, 200));
+        setVisible(true);
 
 
         RadioButton1.addActionListener(new ActionListener() {
@@ -74,67 +74,69 @@ public class MainGui extends JFrame {
         button1.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                System.out.println(textAreaProgram.getText());
                 try {
+                    lexer = new Lexer();
+                    lexer.setProgram(textAreaProgram.getText().getBytes());
                     Parser parser = new Parser(lexer);
-
-
-                    System.setIn(new ByteArrayInputStream(textAreaProgram.getText().getBytes()));
-
                     parser.start();
 
-                } catch (IOException ex) {
-                    System.out.println("EXCEPTION");
-                    textAreaErrors.setText("");
-                    textAreaErrors.append("Ошибка загрузки вводного текста!");
+                }catch (NullPointerException e1){
+
                 }
+
+                fillNums();
+                fillVariables();
+
+                textAreaAn1.setText("");
+                textAreaAn1.setLineWrap(true);
+                textAreaAn1.setWrapStyleWord(true);
+                textAreaAn1.append(lexer.getResult().toString());
             }
         });
     }
 
-   private static void fillKeywords(){
-       keywords = new String[lexer.getWords().size()][2];
-       int j=0; int i = 0;
-       for(Object word : lexer.getWords().keySet()){
-           keywords[i][j]=String.valueOf(i+1);
-           keywords[i][j+1]=word.toString();
-           i++;
-       }
-   }
+    private static void fillKeywords() {
+        keywords = new String[lexer.getWords().size()][2];
+        int j = 0;
+        int i = 0;
+        for (Object word : lexer.getWords().keySet()) {
+            keywords[i][j] = String.valueOf(i + 1);
+            keywords[i][j + 1] = word.toString();
+            i++;
+        }
+    }
 
-    private static void fillBoarders(){
+    private static void fillBoarders() {
         boarders = new String[lexer.getBorders().size()][2];
-        int j=0; int i = 0;
-        for(Object word : lexer.getBorders().keySet()){
-            boarders[i][j]=String.valueOf(i+1);
-           boarders[i][j+1]=word.toString();
+        int j = 0;
+        int i = 0;
+        for (Object word : lexer.getBorders().keySet()) {
+            boarders[i][j] = String.valueOf(i + 1);
+            boarders[i][j + 1] = word.toString();
             i++;
         }
     }
 
-   private static void fillNums(){
-        numbers = new String[lexer.getNumbers().size()][2];
-        System.out.println(lexer.getNumbers().size());
-        int j=0; int i = 0;
-        for(String num : lexer.getNumbers()){
-            numbers[i][j]=String.valueOf(i+1);
-            numbers[i][j+1]=num;
-            System.out.println(num);
+    private void fillNums() {
+
+        int i = 0;
+        for (String num : lexer.getNumbers()) {
+            numsModel.addRow(new String[]{String.valueOf(i + 1),num});
             i++;
         }
+
     }
 
 
-    private static void fillVariables(){
-        variables = new String[lexer.getVariables().size()][2];
-        int j=0; int i = 0;
-        for(String num : lexer.getVariables()){
-            variables[i][j]=String.valueOf(i+1);
-            variables[i][j+1]=num;
+    private static void fillVariables() {
+        int i = 0;
+        for (String var : lexer.getVariables()) {
+            varsModel.addRow(new String[]{String.valueOf(i + 1),var});
             i++;
         }
     }
-
+    private static DefaultTableModel numsModel = new DefaultTableModel(keywordsColumns,0);
+    private static DefaultTableModel varsModel = new DefaultTableModel(keywordsColumns,0);
     private void createUIComponents() {
 
         textAreaProgram = new JTextArea();
@@ -145,16 +147,15 @@ public class MainGui extends JFrame {
 
 
         fillKeywords();
-        tableWords = new JTable(keywords,keywordsColumns);
+        tableWords = new JTable(keywords, keywordsColumns);
 
         fillBoarders();
-        tableBoarders = new JTable(boarders,keywordsColumns);
+        tableBoarders = new JTable(boarders, keywordsColumns);
 
-        fillNums();
-        tableNums = new JTable(numbers,keywordsColumns);
 
-        fillVariables();
-        tableVariables = new JTable(variables,keywordsColumns);
+        tableNums = new JTable(numsModel);
+
+        tableVariables = new JTable(varsModel);
 
     }
 }

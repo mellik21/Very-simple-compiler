@@ -48,5 +48,24 @@ public class Keyword extends Token {
 
     NUM = new Keyword("!", Tag.NUM),
             REAL = new Keyword("%", Tag.REAL),
-            BOOLEAN = new Keyword("$", Tag.BOOLEAN);
+            BOOLEAN = new Keyword("$", Tag.BOOLEAN),
+
+
+
+            //onesym
+
+
+    L_P = new Keyword("{",Tag.L_P),
+        R_P = new Keyword("{",Tag.R_P),
+    COLON = new Keyword(":",Tag.COLON),
+        COMMA = new Keyword(",",Tag.COMMA),
+        EQSYM = new Keyword("=",Tag.EQSYM),
+        SEMICOLON = new Keyword(";",Tag.SEMICOLON),
+        UNARY = new Keyword("~",Tag.UNARY);
+
+    @Override
+    public int hashCode()
+    {
+        return (int)this.lexeme.charAt(0);
+    }
 }

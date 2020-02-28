@@ -17,10 +17,20 @@ public class Lexer {
     private ArrayList<String> variables = new ArrayList<>();
     private ArrayList<String> numbers = new ArrayList<>();
 
+    private ArrayList<String> result = new ArrayList<>();
+
+    private byte[] program;
+
     private char peek = ' ';
 
     public static int line = 1;
 
+    public Lexer(byte[] program) {
+        this.program = new byte[program.length];
+        System.arraycopy(program, 0, this.program, 0, program.length);
+    }
+
+    private int index = 0;
 
     private void reserveWord(Keyword kword) {
         words.put(kword.lexeme, kword);
@@ -52,6 +62,8 @@ public class Lexer {
         reserveWord(Keyword.NUM);
         reserveWord(Keyword.REAL);
         reserveWord(Keyword.BOOLEAN);
+
+
     }
 
     private void reserveBoarders() {
@@ -71,6 +83,13 @@ public class Lexer {
         reserveBoarder(Keyword.DIV);
         reserveBoarder(Keyword.AND);
 
+        reserveBoarder(Keyword.L_P);
+        reserveBoarder(Keyword.R_P);
+        reserveBoarder(Keyword.COLON);
+        reserveBoarder(Keyword.COMMA);
+        reserveBoarder(Keyword.EQSYM);
+        reserveBoarder(Keyword.SEMICOLON);
+        reserveBoarder(Keyword.UNARY);
     }
 
     public Lexer() {
@@ -79,21 +98,18 @@ public class Lexer {
     }
 
 
-    private void read() throws IOException {
-        peek = (char) System.in.read();
-    }
+    private void read() {
+        if (index == program.length) {
 
-
-    private boolean read(char c) throws IOException {
-        read();
-        if (peek != c) {
-            return false;
+        } else {
+            peek = (char) program[index];
+            //  System.out.println(peek + "  " + index);
+            index++;
         }
-        peek = ' ';
-        return true;
     }
 
-    public Token scan() throws IOException {
+
+    public Token scan() {
         read();
         for (; ; read()) {
             if (peek == ' ' || peek == '\t') {
@@ -105,26 +121,36 @@ public class Lexer {
             }
         }
 
-        switch (peek){
+        switch (peek) {
             case '{':
+                result.add("(2,"+(Tag.L_P-300)+")");
                 return new Token('{');
             case '}':
+                result.add("(2,"+(Tag.R_P-300)+")");
                 return new Token('}');
             case ':':
+                result.add("(2,"+(Tag.COLON-300)+")");
                 return new Token(':');
             case ',':
+                result.add("(2,"+(Tag.COMMA-300)+")");
                 return new Token(',');
             case '=':
+                result.add("(2,"+(Tag.EQSYM-300)+")");
                 return new Token('=');
             case ';':
+                result.add("(2,"+(Tag.SEMICOLON-300)+")");
                 return new Token(';');
             case '~':
+                result.add("(2,"+(Tag.UNARY-300)+")");
                 return new Token('~');
             case '%':
+                result.add("(1,"+(Tag.NUM-100)+")");
                 return Keyword.NUM;
             case '!':
+                result.add("(1,"+(Tag.REAL-100)+")");
                 return Keyword.REAL;
             case '$':
+                result.add("(1,"+(Tag.BOOLEAN-100)+")");
                 return Keyword.BOOLEAN;
             default:
                 break;
@@ -133,14 +159,14 @@ public class Lexer {
         if (Character.isDigit(peek)) {
 
             StringBuilder sb = new StringBuilder("");
-            while (peek!=' '){
+            while (peek != ' ') {
                 sb.append(peek);
                 read();
             }
             System.out.println(sb.toString());
 
             numbers.add(sb.toString());
-
+            result.add("(4,"+ (numbers.lastIndexOf(sb.toString())+1) +")");
             if (peek != '.') {
                 switch (sb.charAt(sb.length() - 1)) {
                     case 'B':
@@ -158,8 +184,7 @@ public class Lexer {
                     case 'H':
                     case 'h':
                         try {
-                            int convert = Integer.parseInt(sb.toString(),16);
-                            System.out.println(convert);
+                            int convert = Integer.parseInt(sb.toString(), 16);
                             return new Num(convert);
                         } catch (NumberFormatException e) {
                             System.out.println("Wrong number format : " + sb.toString());
@@ -184,34 +209,42 @@ public class Lexer {
 */
         }
 
-        if (Character.isLetter((int) peek) || peek=='(' || peek == ')' || peek == '*') {
+        if (Character.isLetter((int) peek) || peek == '(' || peek == ')' || peek == '*') {
 
             StringBuilder b = new StringBuilder();
-            do {
+            while (peek != ' ') {
                 b.append(peek);
                 read();
-                if(!hasNext()){
+                if (index == program.length - 1) {
                     b.append(peek);
                     read();
+                    b.append(peek);
                     break;
                 }
-            } while (peek !=' ');
+            }
             String s = b.toString();
-          //  System.out.println(s);
+            System.out.println(s);
 
-            Keyword w = (Keyword) words.get(s);
+            if(variables.contains(s)){
+                result.add("(3,"+(variables.lastIndexOf(s)+1)+")");
+                return new Keyword(s, Tag.ID);
+            }
+            Keyword w = words.get(s);
             if (w != null) {
+                result.add("(1,"+(w.tag - 100)+")");
                 return w;
             }
 
-            w = (Keyword)borders.get(s);
+            w = borders.get(s);
             if (w != null) {
+                result.add("(2,"+(w.tag - 300)+")");
                 return w;
             }
 
             w = new Keyword(s, Tag.ID);
             words.put(s, w);
             variables.add(s);
+            result.add("(3,"+(variables.lastIndexOf(s)+1)+")");
             return new Keyword(s, Tag.ID);
         }
 
@@ -221,29 +254,20 @@ public class Lexer {
         return t;
     }
 
-    public boolean findVariable(String name){
+    public boolean findVariable(String name) {
         return words.containsKey(name);
     }
 
-    public Token checkNumber(String s, int system){
-        int result=0;
+    public Token checkNumber(String s, int system) {
+        int result = 0;
         try {
-            result = Integer.parseInt(s,system);
-            System.out.println(" Найдена система счисления: "+system+"  для числа "+s);
-        }catch (NumberFormatException e){
-            System.out.println("Wrong number format : "+s);
+            result = Integer.parseInt(s, system);
+
+        } catch (NumberFormatException e) {
+            System.out.println("Wrong number format : " + s);
             System.exit(0);
         }
         return new Num(result);
-    }
-
-    public boolean hasNext(){
-        try {
-            return (System.in.available()>0);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return false;
     }
 
     public Hashtable<String, Keyword> getWords() {
@@ -260,5 +284,25 @@ public class Lexer {
 
     public ArrayList<String> getNumbers() {
         return numbers;
+    }
+
+    public byte[] getProgram() {
+        return program;
+    }
+
+    public void setProgram(byte[] program) {
+        this.program = program;
+    }
+
+    public int getIndex() {
+        return index;
+    }
+
+    public int getProgramLenght() {
+        return program.length;
+    }
+
+    public ArrayList<String> getResult() {
+        return result;
     }
 }
