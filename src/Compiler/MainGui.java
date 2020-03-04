@@ -1,6 +1,5 @@
-package redcompiler;
+package Compiler;
 
-import lexer.Keyword;
 import lexer.Lexer;
 import parser.Parser;
 

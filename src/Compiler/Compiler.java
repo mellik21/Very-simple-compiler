@@ -1,13 +1,9 @@
 
-package redcompiler;
+package Compiler;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
-import lexer.Lexer;
-import parser.Parser;
-
-public class RedCompiler {
+public class Compiler {
     public static  String TEST = "{  \n var a  : ! ; \n }";
     public static String TEST1 = "begin { \n  var a : ! ; \n if 1 LT 2  \n then \n let a = 3 \n else \n a = 2 \n end_else \n } end";
     public static String TEST2 = "begin { var a : ! ; let a = 1 do while ( a LT 10 ) a = a plus 1 loop } end";
