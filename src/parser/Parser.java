@@ -5,149 +5,149 @@
  */
 package parser;
 
-import inter.expr.Constant;
-import inter.expr.Expr;
-import inter.expr.Rel;
-import inter.expr.arith.Arith;
-import inter.expr.arith.Unary;
-import inter.expr.logic.Not;
+import inter.Expression;
 import inter.stmt.*;
 import lexer.Keyword;
 import lexer.Lexer;
 import lexer.Tag;
 import lexer.Token;
-import symbol.Env;
-import symbol.Type;
 
 public class Parser {
 
     private final Lexer lexer;
     private Token look;
+    private String error = null;
 
-    public Parser(Lexer lexer) {
+    public Parser(Lexer lexer) throws Throwable {
         this.lexer = lexer;
         move();
     }
 
-    private void move() {
-        if(lexer.getIndex()!=lexer.getProgramLenght()) {
+    private void move() throws Throwable {
+        if (lexer.getIndex() != lexer.getProgramLenght()-1) {
             look = lexer.scan();
-        //    System.out.println("# " + look.tag);
-        }else {
-            System.out.println("Анализ проведен успешно!");
+        } else {
+            match(Tag.END);
         }
     }
 
-    private void match(int t) {
+    private void match(int t) throws Throwable {
         if (look.tag == t) {
-        //  System.out.println("$ "+look.tag+" "+t);
+           System.out.println("PARSE :" + look.tag + " " + t);
             move();
         } else {
-            error("Syntax Error! Code "+t+" expected");
+            error("Syntax Error! " + lexer.findWord(new Token(t)).toUpperCase() + " expected");
         }
     }
 
-    private void error(String s) {
-        System.out.println(("near line " + lexer.line + " : " + s));
-        System.exit(0);
+
+    private void error(String s) throws Throwable {
+        error = s;
+        lexer.setError(s);
+        lexer.stop();
+        this.wait();
     }
 
-    public void start()  {
+    public void start() throws Throwable {
         program();
     }
 
-    private void program() { // PROG → BLOCK
-        if(look.tag == Tag.BEGIN) {
-            match(Tag.BEGIN);
-        }else{
-            error("begin expected");
-        }
+    private void program() throws Throwable { // PROG → BLOCK
+        match(Tag.BEGIN);
         block();
-        if(look.tag == Tag.END) {
-            match(Tag.END);
-        }else{
-            error("end expected");
-        }
+        match(Tag.END);
     }
 
-    private Env top = null; // top symbol table
-
-    private Stmt block()  { // BLOCK → { DECLS STMTS }
+    private Statement block() throws Throwable { // BLOCK → { DECLS STMTS }
         match('{');
         decls();
-        Stmt s = stmts();
+        Statement s = stmts();
         match('}');
         return s;
     }
 
     //==========================================================================
     // what about var a,b,c,d : % ;
-    private void decls()  {
-        if(look.tag == Tag.VAR){
-        match(Tag.VAR);
+    private void decls() throws Throwable {
+        int ids = 0;
+        int coms = 0;
+        String var = "";
+        if (look.tag == Tag.VAR) {
+            match(Tag.VAR);
             while (look.tag == Tag.ID) {
+                var = ((Keyword) look).lexeme ;
+                lexer.addVariable(((Keyword) look).lexeme);
+                lexer.addToResult("(3," + (lexer.getVariables().lastIndexOf(((Keyword) look).lexeme) + 1) + ")");
+                lexer.addVarToVar(((Keyword) look).lexeme);
                 match(Tag.ID);
+                ids++;
                 if (look.tag == ',') {
                     match(',');
+                    coms++;
                 }
+            }
+            if (ids == 0 || (ids == coms)) {
+                error("Variable expected!");
+            } else if (ids - 1 > coms) {
+                error("Comma expected!");
             }
             match(':');
             switch (look.tag) {
                 case Tag.NUM:
+                    lexer.addValueToVar(var,Tag.NUM);
                     match(Tag.NUM);
                     break;
                 case Tag.REAL:
+                    lexer.addValueToVar(var,Tag.REAL);
                     match(Tag.REAL);
                     break;
                 case Tag.BOOLEAN:
+                    lexer.addValueToVar(var,Tag.NUM);
                     match(Tag.BOOLEAN);
                     break;
                 default:
-                    break;
+                    error("Unknown type! ");
             }
-
             match(';');
-
         }
     }
 
     //=============================================================================
 
-    private Stmt stmts()  { //STMTS →  STMTS STMT | ε
+    private Statement stmts() throws Throwable { //STMTS →  STMTS STMT | ε
         if (look.tag == '}') {
-            return Stmt.Null;
+            return null;
         } else {
-            return new StmtSeq(stmt(), stmts());
+            return new StatementSeq(stmt(), stmts());
         }
     }
 
-    private Stmt stmt()  {
-        Expr x;
-        Stmt s1;
-        Stmt s2;
-        Stmt savedstmt; // to save outer loop for break
+    private Statement stmt() throws Throwable {
+        Expression x;
+        Statement s1;
+        Statement s2;
+        Statement savedstmt; // to save outer loop for break
         switch (look.tag) {
+            case ')':
+                return null;
+            case Tag.VAR:
+                decls();
             case ';':
-                move();
-                return Stmt.Null;
+                return Statement.Null;
 
             case Tag.IF: //STMT → if bool then STMT
                 match(Tag.IF);
-
                 x = bool();
                 match(Tag.THEN);
                 s1 = stmt();
-
                 if (look.tag != Tag.ELSE) {
-                    return new If(x, s1);
+                    match(Tag.END_ELSE);
+                    return new Statement();
                 }
-
                 match(Tag.ELSE); //if bool then STMT else
-
                 s2 = stmt();
-
                 match(Tag.END_ELSE);
-                return new IfElse(x, s1, s2);
+                return new Statement();
 
             case Tag.FOR: //STMT → for ( stmt ; bool ; stmt )
                 match(Tag.FOR);
@@ -157,31 +157,26 @@ public class Parser {
                 x = bool();
                 match(';');
                 s2 = stmt();
+
                 match(')');
-                return new For(x,s1,s2);
+                return new Statement();
             case Tag.DO: //STMT → do STMT while ( BOOL ) ;
                 match(Tag.DO);
                 match(Tag.WHILE);
-                While whilenode = new While();
-                savedstmt = Stmt.Enclosing;
-                Stmt.Enclosing = whilenode; // now there outer/Stmt.Enclosing is While
-
                 x = bool();
-
                 s1 = stmt(); // s1 can be break
-                whilenode.init(x, s1);
-                Stmt.Enclosing = savedstmt; // reset Stmt.Enclosing
-                return whilenode;
+                return new Statement();
             case Tag.LOOP: //STMT → break ;
                 match(Tag.LOOP);
-
-                return new Break();
+                return new Statement();
             case Tag.INPUT:
                 match(Tag.INPUT);
                 match('(');
-                match(Tag.ID);
+                while(look.tag == Tag.ID) {
+                    match(Tag.ID);
+                }
                 match(')');
-                return new Input();
+                return new Statement();
             case Tag.OUTPUT:
                 match(Tag.OUTPUT);
                 match('(');
@@ -189,18 +184,21 @@ public class Parser {
                     x = bool();
                 }
                 match(')');
-                return new Input();
+                return new Statement();
             case '{': //STMT → BLOCK
                 return block();
-            case '}':
-                return null;
+             case '}':
+                 match('}');
+                 return null;
             case Tag.L_СOMMENT:
                 match(Tag.L_СOMMENT);
-                while(look.tag!=Tag.R_COMMENT){
-                    lexer.scan();
-                    if(lexer.getIndex()>=lexer.getProgramLenght()-1){
+
+                while (look.tag != Tag.R_COMMENT) {
+                    System.out.println(lexer.getIndex() + " " + (lexer.getProgramLenght() - 1));
+                    move();
+                    if (lexer.getIndex() >= lexer.getProgramLenght() - 1) {
                         error("Незакрытый комментарий!");
-                        break;
+                        return null;
                     }
                 }
                 match(Tag.R_COMMENT);
@@ -210,65 +208,65 @@ public class Parser {
                 return null;
             default:  //STMT → LOC = BOOL ;
                 return assign();
-
         }
-
     }
 
     //what about a = 3 // let a = false
-    private Stmt assign()  { //STMT → LOC = BOOL ; // LOC →  LOC [ BOOL] | id
+    private Statement assign() throws Throwable { //STMT → LOC = BOOL ; // LOC →  LOC [ BOOL] | id
 
-        Stmt stmt = null;
-        if(look.tag == Tag.LET){
+        Statement statement = null;
+        if (look.tag == Tag.LET) {
             match(Tag.LET);
         }
-        Token t = look;
-        match(Tag.ID);
-        String variable  = ((Keyword)t).lexeme;
-        if(!lexer.findVariable(variable)){
-            error("variable " +variable +"undeclared");
-        }
+        if(look.tag == Tag.ID) {
+            String variable = ((Keyword) look).lexeme;
+            if (!lexer.findVariable(variable)) {
+                error("variable " + variable + "undeclared");
+            }
+            match(Tag.ID);
 
-
-        if (look.tag == '=') { //STMT -> id = expr
-            match('=');
-         //   System.out.println(variable+" =");
-            stmt = new Set(variable, bool());
+            if (look.tag == '=') { //STMT -> id = expr
+                match('=');
+                Expression ex = bool();
+                statement = new Statement();
+            }
+            match(';');
         }
-        return stmt;
+        return statement;
+
     }
 
-    private Expr bool()  { //BOOL → BOOL || JOIN | JOIN
-        Expr x = join();
+    private Expression bool() throws Throwable { //BOOL → BOOL || JOIN | JOIN
+        Expression x = join();
         while (look.tag == Tag.OR) {
             Token tok = look;
             match(look.tag);
-            x = new Rel(tok, x, join());
+            x = join();
         }
         return x;
     }
 
-    private Expr join() { // JOIN →  JOIN && EQUALITY | EQUALITY
-        Expr x = equality();
+    private Expression join() throws Throwable { // JOIN →  JOIN && EQUALITY | EQUALITY
+        Expression x = equality();
         while (look.tag == Tag.AND) {
             Token tok = look;
             match(look.tag);
-            x = new Rel(tok, x, equality());
+            x = equality();
         }
         return x;
     }
 
-    private Expr equality()  { //EQUALITY  →  EQUALITY == REL | EQUALITY != REL | REL
-        Expr x = rel();
+    private Expression equality() throws Throwable { //EQUALITY  →  EQUALITY == REL | EQUALITY != REL | REL
+        Expression x = rel();
         while (look.tag == Tag.EQ || look.tag == Tag.NE) {
             match(look.tag);
-            x = new Rel(look, x, rel());
+            x = rel();
         }
         return x;
     }
 
-    private Expr rel()  { //REL → EXPR <  EXPR |  EXPR <= EXPR | EXPR >= EXPR | EXPR > EXPR |  EXPR
-        Expr x = expr();
+    private Expression rel() throws Throwable { //REL → EXPR <  EXPR |  EXPR <= EXPR | EXPR >= EXPR | EXPR > EXPR |  EXPR
+        Expression x = expr();
         switch (look.tag) {
             case Tag.LT:
             case Tag.LE:
@@ -276,86 +274,86 @@ public class Parser {
             case Tag.GT:
                 Token tok = look;
                 match(look.tag);
-                return new Rel(tok, x, expr());
+                x = expr();
+                return x;
             default:
                 return x;
         }
 
     }
 
-    private Expr expr() { //EXPR → EXPR + TERM | EXPR - TERM | TERM
-        Expr x = term();
+    private Expression expr() throws Throwable { //EXPR → EXPR + TERM | EXPR - TERM | TERM
+        Expression x = term();
         while (look.tag == Tag.PLUS || look.tag == Tag.MINUS) {
             Token tok = look;
             move();
-            x = new Arith(tok, x, term());
+            x = term();
+
         }
         return x;
     }
 
-    private Expr term()  { //TERM →  TERM * UNARY | TERM / UNARY | UNARY
-        Expr x = unary();
+    private Expression term() throws Throwable { //TERM →  TERM * UNARY | TERM / UNARY | UNARY
+        Expression x = unary();
         while (look.tag == Tag.MULT || look.tag == Tag.DIV) {
             Token tok = look;
             move();
-            x = new Arith(tok, x, unary());
-
+            x =  unary();
         }
         return x;
 
     }
 
-    private Expr unary()  { // UNARY →  !UNARY | -UNARY | FACTOR
+    private Expression unary() throws Throwable { // UNARY →  !UNARY | -UNARY | FACTOR
         if (look.tag == '~') {
-            move();
-            return new Unary(Keyword.MINUS, unary());
-        } else if (look.tag == '!') {
-            Token tok = look;
-            move();
-            return new Not(tok, unary());
-
+            match('~');
+            return  unary();
         } else {
             return factor();
         }
 
     }
 
-    private Expr factor()  { //factor -> ( BOOL ) | ID[BOOL] |ID | num | real | true | false
-        Expr x = null;
+    private Expression factor() throws Throwable { //factor -> ( BOOL ) | ID[BOOL] |ID | num | real | true | false
+        Expression x = null;
+
         switch (look.tag) {
             case '(':
-                move();
+                match('(');
                 x = bool();
                 match(')');
                 return x;
+
             case Tag.NUM:
-                x = new Constant(look, Type.INT); // factor.n= new Num(value)
+                x = new Expression(look); // factor.n= new Num(value)
                 match(Tag.NUM);
                 return x;
+
             case Tag.REAL:
-                x = new Constant(look, Type.FLOAT); // factor.n= new Real(value)
-                move();
-                return x;
-            case Tag.TRUE: //factor.n= true, factor.type = bool
-                x = Constant.True;
-                move();
-                return x;
             case Tag.FALSE:
-                x = Constant.False;
+            case Tag.TRUE: //factor.n= true, factor.type = bool
+                x = new Expression(look); // factor.n= new Real(value)
                 move();
                 return x;
             case Tag.ID:
-                if (!lexer.findVariable(((Keyword)look).lexeme)) {
+                System.out.println(!lexer.findVariable(((Keyword) look).lexeme) + " " + ((Keyword) look).lexeme);
+                if (!lexer.findVariable(((Keyword) look).lexeme)) {
+
                     error("variable " + ((Keyword) look).lexeme + " undeclared");
                 }
-                move();
-                return new Expr(look,Type.INT); //factor.n = id, factor.type= id.type
-            default:
-                error("Syntax error");
-
+                match(Tag.ID);
+                return new Expression(look, Tag.NUM); //factor.n = id, factor.type= id.type
         }
         return null;
     }
 
+
+    public String getError() {
+        return error;
+    }
+
+    public void setError(String error) {
+        this.error = error;
+    }
 
 }

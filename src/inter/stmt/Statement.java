@@ -3,15 +3,13 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package lexer;
+package inter.stmt;
 
-public class Real extends Token {
+
+public class Statement {
+
+    public Statement() {
     
-    public final float value;
-
-    public Real(float value) {
-        super(Tag.REAL);
-        this.value = value;
     }
-
+    public static Statement Null = new Statement();
 }

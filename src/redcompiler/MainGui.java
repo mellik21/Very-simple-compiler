@@ -9,10 +9,7 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Hashtable;
+
 
 public class MainGui extends JFrame {
     private JLabel label1;
@@ -46,44 +43,55 @@ public class MainGui extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 textAreaProgram.setText("");
-                textAreaProgram.append("begin { \n  var a : ! ; \n if 1 LT 2  \n then \n let a = 3 \n else \n a = 2 \n end_else \n } end");
+                textAreaProgram.append("begin { \n  var a : ! ; \n if 1 LT 2  \n then \n let a = 3 ; \n else \n a = 2 ; \n end_else \n } end");
             }
         });
         radioButton2.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 textAreaProgram.setText("");
-                textAreaProgram.append("begin { \n var a,b,c,d : ! ; \n let a = 011B ; \n b = 011D ; \n c = 011O ; \n d = F2C22A3H ; \n } end");
+                textAreaProgram.append("begin { \n var a , b , c , d : ! ; \n let a = .123E+13 ; \n b = 011D ; \n c = 011XYZ ; \n d = F2C22A3H ; \n } end");
             }
         });
         radioButton3.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 textAreaProgram.setText("");
-                textAreaProgram.append("begin { \n var a : ! ; \n let a = 1 \n do while ( a LT 10 ) \n a = a plus 1 loop \n } end\n");
+                textAreaProgram.append("begin { \n var a : ! ; \n let a = 1 \n do a LT 10 \n a = a plus 1 loop \n } end\n");
             }
         });
         RadioButton4.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 textAreaProgram.setText("");
-                textAreaProgram.append("begin { \n var a : 1 ; \n input ( a ) \n output ( a plus 1 ) } end");
+                textAreaProgram.append("begin { \n input ( a ) \n output ( a plus 1 ) } end");
             }
         });
 
         button1.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+               clearAll();
                 try {
                     lexer = new Lexer();
                     lexer.setProgram(textAreaProgram.getText().getBytes());
                     Parser parser = new Parser(lexer);
                     parser.start();
 
-                }catch (NullPointerException e1){
+                    if(parser.getError()!=null){
+                        System.out.println("GET ERROR");
+                        System.out.println(parser.getError());
+                    }
+                }catch (Throwable e1){
 
                 }
+                textAreaErrors.setText("");
+                if(lexer.getError()!=null){
 
+                    textAreaErrors.append(lexer.getError());
+                }else{
+                    textAreaErrors.append("Aнализ проведен успешно!");
+                }
                 fillNums();
                 fillVariables();
 
@@ -118,13 +126,11 @@ public class MainGui extends JFrame {
     }
 
     private void fillNums() {
-
         int i = 0;
         for (String num : lexer.getNumbers()) {
             numsModel.addRow(new String[]{String.valueOf(i + 1),num});
             i++;
         }
-
     }
 
 
@@ -135,6 +141,17 @@ public class MainGui extends JFrame {
             i++;
         }
     }
+
+    private static void clearAll(){
+        for(int i = numsModel.getRowCount() - 1; i >= 0; i--) {
+            numsModel.removeRow(i);
+        }
+
+        for(int i =varsModel.getRowCount() - 1; i >= 0; i--) {
+            varsModel.removeRow(i);
+        }
+    }
+
     private static DefaultTableModel numsModel = new DefaultTableModel(keywordsColumns,0);
     private static DefaultTableModel varsModel = new DefaultTableModel(keywordsColumns,0);
     private void createUIComponents() {
@@ -151,7 +168,6 @@ public class MainGui extends JFrame {
 
         fillBoarders();
         tableBoarders = new JTable(boarders, keywordsColumns);
-
 
         tableNums = new JTable(numsModel);
 

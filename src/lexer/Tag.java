@@ -24,8 +24,11 @@ public class Tag {
     public final static int DO = 112;
     public final static int WHILE = 110;
     public final static int LOOP = 117;
+
     public final static int ID = 264;
+
     public final static int NUM = 104;
+
     public final static int REAL = 106;
     public final static int MINUS = 313;
     public final static int PLUS = 317;

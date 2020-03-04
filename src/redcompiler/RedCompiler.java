@@ -18,7 +18,10 @@ public class RedCompiler {
 
 
     public static void main(String[] args) throws IOException {
-        MainGui lexerAnalyser = new MainGui();
-
+        System.out.println((char)125);
+       MainGui lexerAnalyser = new MainGui();
+    //    String s = "F2C22A3";
+     //   int a = Integer.parseInt(s,16);
+      //  System.out.println(a);
     }
 }

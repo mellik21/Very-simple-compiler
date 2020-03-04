@@ -8,9 +8,9 @@ package lexer;
 
 public class Num extends Token {
 
-    public final int value;
+    public final String value;
 
-    public Num(int value) {
+    public Num(String value) {
         super(Tag.NUM);
         this.value = value;
     }

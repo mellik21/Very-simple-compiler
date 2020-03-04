@@ -7,12 +7,12 @@
 package inter.stmt;
 
 
-public class StmtSeq extends Stmt{
-    Stmt stmtl; Stmt stmt2;
+public class StatementSeq extends Statement {
+    Statement stmtl; Statement statement2;
 
-    public StmtSeq(Stmt stmtl, Stmt stmt2) {
+    public StatementSeq(Statement stmtl, Statement statement2) {
         this.stmtl = stmtl;
-        this.stmt2 = stmt2;
+        this.statement2 = statement2;
     }
     
 }

@@ -68,4 +68,9 @@ public class Keyword extends Token {
     {
         return (int)this.lexeme.charAt(0);
     }
+
+    @Override
+    public String toString(){
+        return tag+" "+lexeme+"\n";
+    }
 }
